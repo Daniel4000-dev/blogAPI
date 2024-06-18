@@ -3,6 +3,7 @@ from fastapi.encoders import jsonable_encoder
 from ..schemas import User, db, UserResponse
 from ..utils import get_password_hash
 import secrets
+from ..send_mail import send_registration_mail
 
 router = APIRouter(
     tags=["User Routes"]
@@ -22,7 +23,7 @@ async def registration(user_info: User):
         
     if email_found:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
-                            detail="Email id already taken")
+                            detail="Email is already taken")
     
     # hash user password        
     user_info["password"] = get_password_hash(user_info["password"])
@@ -33,5 +34,12 @@ async def registration(user_info: User):
     created_user = await db['users'].find_one({"_id": new_user.inserted_id})
     
     # send email
-    
+    await send_registration_mail(
+        "Registration Successful",
+        user_info["email"], 
+        {
+            "title": "Registration Successful",
+            "name": user_info["name"]   
+        }
+    )
     return created_user
